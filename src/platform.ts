@@ -1,13 +1,32 @@
 import { Capacitor } from "@capacitor/core";
 import type { DesktopInfo } from "./sync";
 
-export type Platform = "android" | "desktop" | "preview";
+export type Platform = "android" | "ios" | "desktop" | "preview";
 declare global { interface Window { __TAURI_INTERNALS__?: unknown } }
-export const platform: Platform = Capacitor.isNativePlatform() ? "android"
-  : typeof window !== "undefined" && "__TAURI_INTERNALS__" in window ? "desktop" : "preview";
+function detectPlatform(): Platform {
+  const nativePlatform = Capacitor.getPlatform();
+  if (nativePlatform === "android" || nativePlatform === "ios") return nativePlatform;
+  if (nativePlatform !== "web") throw new Error(`Unsupported native platform: ${nativePlatform}`);
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window ? "desktop" : "preview";
+}
+export const platform = detectPlatform();
+export const isCapacitorNative = platform === "android" || platform === "ios";
 export const isPreview = platform === "preview";
 export const isDesktop = platform === "desktop";
-export const capabilities = { nativeCapture: platform === "android", widgets: platform === "android", automaticLocation: platform !== "desktop" };
+interface PlatformCapabilities {
+  nativeCapture: boolean;
+  widgets: boolean;
+  automaticLocation: boolean;
+  manageTagSharing: boolean;
+}
+const platformCapabilities: Record<Platform, PlatformCapabilities> = {
+  android: { nativeCapture: true, widgets: true, automaticLocation: true, manageTagSharing: true },
+  // Enable iOS integrations individually when their native implementations are available.
+  ios: { nativeCapture: false, widgets: false, automaticLocation: false, manageTagSharing: false },
+  desktop: { nativeCapture: false, widgets: false, automaticLocation: false, manageTagSharing: false },
+  preview: { nativeCapture: false, widgets: false, automaticLocation: true, manageTagSharing: true },
+};
+export const capabilities = platformCapabilities[platform];
 
 export type DesktopRuntimeState =
   | { status: "loading" }

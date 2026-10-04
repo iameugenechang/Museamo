@@ -1,11 +1,8 @@
-import {
-  Capacitor,
-  registerPlugin,
-} from "@capacitor/core";
+import { registerPlugin } from "@capacitor/core";
 import { type Attachment, MEDIA_LIMIT } from "./media";
 import { hashtags } from "./hashtags";
 import { type LocationLabelParts } from "./locationLabels";
-import { platform } from "./platform";
+import { platform, isCapacitorNative } from "./platform";
 import { desktopBridge } from "./desktop";
 import type { CompanionBridge } from "./sync";
 import type { ShareBridge, TagSharing } from "./sharing";
@@ -14,7 +11,7 @@ export type LocationStatus = "available" | "services-off" | "permission-denied" 
 export function locationStatusMessage(status: LocationStatus) {
   switch (status) {
     case "services-off": return "Device location is off. This post will save without a location.";
-    case "permission-denied": return "Location permission was not granted. You can allow it in Android app settings.";
+    case "permission-denied": return "Location permission was not granted. You can allow it in app settings.";
     case "timeout": return "Couldn’t find your location. Tap the pin to retry.";
     case "disabled": return "Automatic location is off. Tap the pin to add a location to this post.";
     case "cancelled": return "Location lookup stopped. Tap the pin to retry.";
@@ -153,7 +150,7 @@ export interface MuseamoBridge extends CompanionBridge, ShareBridge {
     callback: () => void,
   ): Promise<{ remove(): Promise<void> }>;
 }
-export const isNative = Capacitor.isNativePlatform();
+export const isNative = isCapacitorNative;
 export const previewTags: Tag[] = [
   { id: "thoughts", name: "Shower thoughts", type: "standard" },
   { id: "words", name: "Cool words", type: "standard" },
@@ -607,5 +604,5 @@ const browser: MuseamoBridge = {
     };
   },
 };
-export const bridge = platform === "android" ? registerPlugin<MuseamoBridge>("Museamo")
+export const bridge = isCapacitorNative ? registerPlugin<MuseamoBridge>("Museamo")
   : platform === "desktop" ? desktopBridge() : browser;

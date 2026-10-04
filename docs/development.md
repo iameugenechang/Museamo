@@ -49,6 +49,16 @@ With a disposable emulator/device attached:
 
 Instrumented tests can replace or clear test data. Use test installations and preserve backups. See the [device checklist](device-checklist.md) for launcher and lifecycle checks, and [paper verification](paper-verification.md) for the isolated visual-test package.
 
+## iOS platform preparation
+
+The shared frontend recognizes Capacitor's `ios` platform separately from Android. Both select the native `Museamo` plugin; missing native methods and storage errors must remain errors, never fall back to browser sample data. A browser on an iPhone still uses the temporary browser preview.
+
+This is frontend preparation only. There is no iOS project, Swift plugin, native storage implementation, or iOS build command yet. Recognizing the platform does not make the app usable on iOS.
+
+Feature availability is explicit in `src/platform.ts`. iOS uses the shared React composer. Native capture, widgets, automatic location, and sharing management remain disabled until their iOS implementations exist. Android retains its existing capabilities, and desktop controls still depend on the desktop runtime response. Browser preview keeps its simulated location and sharing behavior.
+
+When adding an iOS integration, enable its capability and verify the native implementation together. Displaying a shared tag or a saved location is separate from managing sharing or capturing a new location. Capability flags control presentation; native methods must still validate their own requests.
+
 ## Windows
 
 Install Node.js 22+, Rust's MSVC toolchain, Visual Studio C++ build tools with a Windows SDK, and Microsoft Edge WebView2 Runtime.
