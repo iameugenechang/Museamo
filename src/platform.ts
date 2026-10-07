@@ -3,30 +3,30 @@ import type { DesktopInfo } from "./sync";
 
 export type Platform = "android" | "ios" | "desktop" | "preview";
 declare global { interface Window { __TAURI_INTERNALS__?: unknown } }
-function detectPlatform(): Platform {
-  const nativePlatform = Capacitor.getPlatform();
-  if (nativePlatform === "android" || nativePlatform === "ios") return nativePlatform;
-  if (nativePlatform !== "web") throw new Error(`Unsupported native platform: ${nativePlatform}`);
-  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window ? "desktop" : "preview";
+export function detectPlatform(capacitorPlatform: string, desktop: boolean): Platform {
+  if (capacitorPlatform === "android" || capacitorPlatform === "ios") return capacitorPlatform;
+  if (capacitorPlatform !== "web") throw new Error(`Unsupported native platform: ${capacitorPlatform}`);
+  return desktop ? "desktop" : "preview";
 }
-export const platform = detectPlatform();
+export const platform = detectPlatform(Capacitor.getPlatform(), typeof window !== "undefined" && "__TAURI_INTERNALS__" in window);
 export const isCapacitorNative = platform === "android" || platform === "ios";
 export const isPreview = platform === "preview";
 export const isDesktop = platform === "desktop";
-interface PlatformCapabilities {
-  nativeCapture: boolean;
-  widgets: boolean;
-  automaticLocation: boolean;
-  manageTagSharing: boolean;
+export function platformCapabilities(platform: Platform) {
+  return {
+    nativeCapture: platform === "android",
+    widgets: platform === "android",
+    automaticLocation: platform === "android" || platform === "preview",
+    manualLocation: platform === "android" || platform === "ios" || platform === "preview",
+    location: true,
+    media: true,
+    backups: platform !== "ios",
+    sync: platform !== "preview",
+    sharing: true,
+    recovery: true,
+  };
 }
-const platformCapabilities: Record<Platform, PlatformCapabilities> = {
-  android: { nativeCapture: true, widgets: true, automaticLocation: true, manageTagSharing: true },
-  // Enable iOS integrations individually when their native implementations are available.
-  ios: { nativeCapture: false, widgets: false, automaticLocation: false, manageTagSharing: false },
-  desktop: { nativeCapture: false, widgets: false, automaticLocation: false, manageTagSharing: false },
-  preview: { nativeCapture: false, widgets: false, automaticLocation: true, manageTagSharing: true },
-};
-export const capabilities = platformCapabilities[platform];
+export const capabilities = platformCapabilities(platform);
 
 export type DesktopRuntimeState =
   | { status: "loading" }

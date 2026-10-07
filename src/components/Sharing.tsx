@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ListChecks, Users, QrCode, ScanLine } from "lucide-react";
 import { bridge, type Tag } from "../data";
-import { capabilities } from "../platform";
+import { platform, capabilities } from "../platform";
 import type { TagInvitation, TagShareState } from "../sharing";
 import { Sheet } from "./Thoughts";
 
@@ -10,7 +10,11 @@ export function ChecklistMark() { return <span className="shared-mark"><ListChec
 export function SharedMark({ className = "" }: { className?: string }) {
   return <span className={`shared-mark ${className}`} title="Shared hashtag"><Users size={15} aria-hidden="true" /><span className="sr-only">Shared</span></span>;
 }
-export function TagSharingSettings({ tag, changed, close, stateChanged, disabled = false }: { tag: Tag; changed: () => Promise<void>; close: () => void; stateChanged?: (state: TagShareState) => void; disabled?: boolean }) {
+type TagSharingSettingsProps = { tag: Tag; changed: () => Promise<void>; close: () => void; stateChanged?: (state: TagShareState) => void; disabled?: boolean };
+export function TagSharingSettings(props: TagSharingSettingsProps) {
+  return capabilities.sharing ? <AvailableTagSharingSettings {...props} /> : null;
+}
+function AvailableTagSharingSettings({ tag, changed, close, stateChanged, disabled = false }: TagSharingSettingsProps) {
   const [state, setState] = useState<TagShareState>(tag.sharing ?? { collectionId: null });
   const [invite, setInvite] = useState<TagInvitation>();
   const [confirm, setConfirm] = useState<"start" | "stop" | "leave" | string>();
@@ -35,7 +39,7 @@ export function TagSharingSettings({ tag, changed, close, stateChanged, disabled
     if (activeInvite.current) await bridge.cancelTagInvite({ inviteId: activeInvite.current.inviteId });
     const next = await bridge.createTagInvite({ tagId: tag.id }); activeInvite.current = next; setInvite(next);
   }
-  const canManage = capabilities.manageTagSharing;
+  const canManage = platform !== "desktop";
   return <section className="sharing-settings" aria-label="Hashtag sharing">
     {state.collectionId ? <>
       <div className="sharing-heading"><SharedMark /><strong>Shared hashtag</strong></div>
@@ -48,7 +52,7 @@ export function TagSharingSettings({ tag, changed, close, stateChanged, disabled
         {time < invite.expiresAt ? <><img src={invite.imageDataUrl} alt="QR invitation to this shared hashtag" /><p>Scan in Museamo on another phone on the same local network.</p><p className="muted">One use · Expires in {Math.ceil((invite.expiresAt - time) / 60000)} minute(s). Anyone with this QR code can join.</p></> : <p role="status">This QR invitation expired. Create a new one.</p>}
         <button className="text-button" disabled={busy} onClick={() => void run(async () => { await bridge.cancelTagInvite({ inviteId: invite.inviteId }); activeInvite.current = undefined; setInvite(undefined); })}>Cancel invitation</button>
       </div>}
-      {canManage ? <button className="text-button danger" disabled={busy} onClick={() => setConfirm(state.role === "owner" ? "stop" : "leave")}>{state.role === "owner" ? "Stop sharing" : "Leave shared hashtag"}</button> : <p className="muted">Manage sharing on your linked Android device.</p>}
+      {canManage ? <button className="text-button danger" disabled={busy} onClick={() => setConfirm(state.role === "owner" ? "stop" : "leave")}>{state.role === "owner" ? "Stop sharing" : "Leave shared hashtag"}</button> : <p className="muted">Manage sharing on your linked phone.</p>}
     </> : canManage ? <><button className="sharing-setting" disabled={busy || disabled} onClick={() => setConfirm("start")}><Users size={20} aria-hidden="true" /><span><strong>Share hashtag</strong><small>Keep this list in sync with other people.</small></span></button>{disabled && <p className="muted">Save your hashtag changes before sharing.</p>}</> : null}
     {confirm && <div className="sync-confirm">
       <p>{confirm === "start" ? "Share existing and future thoughts with this hashtag? Text, photos/videos, checklist state, and saved locations will be shared. Other hashtag assignments and Gems stay private. Everyone who joins can edit or delete items." : confirm === "stop" ? "Stop sharing for everyone? Each person keeps a private copy of downloaded items. Future changes will stop syncing." : confirm === "leave" ? "Leave this shared hashtag? Your linked devices keep a private copy of downloaded items." : "Remove this member and their linked devices? They keep downloaded items as a private copy. Removal reaches offline devices when they reconnect."}</p>
@@ -80,7 +84,7 @@ export function JoinSharedTag({ joined }: { joined: () => Promise<void> }) {
     catch (e) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(false); pending.current = false; }
   }
-  if (!capabilities.manageTagSharing) return null;
+  if (!capabilities.sharing || platform === "desktop") return null;
   return <><button className="menu-row" disabled={busy} onClick={() => void scan()}><ScanLine size={20} aria-hidden="true" />Join shared hashtag</button>{open && <Sheet title="Join shared hashtag" close={() => { if (!busy) { setOpen(false); setPreview(undefined); } }}>
     {preview && <><h3>#{preview.name}</h3><p>{preview.count} existing item(s){preview.type === "checklist" ? " · Checklist" : ""}</p><p>You and everyone who joins can add, edit, delete, and check off items. Text, attachments, and saved locations are shared. Your other tags and Gems stay private.</p><p className="muted">This list will also appear on your linked devices. Both phones must be reachable on the same local network to join.</p><button className="primary" disabled={busy} onClick={() => void join()}>{busy ? "Joining…" : "Join shared hashtag"}</button></>}
     {error && <p className="error" role="alert">{error}</p>}

@@ -11,7 +11,7 @@ export type LocationStatus = "available" | "services-off" | "permission-denied" 
 export function locationStatusMessage(status: LocationStatus) {
   switch (status) {
     case "services-off": return "Device location is off. This post will save without a location.";
-    case "permission-denied": return "Location permission was not granted. You can allow it in app settings.";
+    case "permission-denied": return "Location permission was not granted. You can allow it in your device’s app settings.";
     case "timeout": return "Couldn’t find your location. Tap the pin to retry.";
     case "disabled": return "Automatic location is off. Tap the pin to add a location to this post.";
     case "cancelled": return "Location lookup stopped. Tap the pin to retry.";

@@ -86,11 +86,12 @@ describe("Capacitor platform routing", () => {
 });
 
 describe("platform feature availability", () => {
-  it("uses the shared composer on iOS without enabling unfinished native integrations", async () => {
+  it("enables implemented iOS features without enabling unfinished native integrations", async () => {
     runtime.platform = "ios";
     const { capabilities } = await import("./platform");
     expect(capabilities).toEqual({
-      nativeCapture: false, widgets: false, automaticLocation: false, manageTagSharing: false,
+      nativeCapture: false, widgets: false, automaticLocation: false, manualLocation: true,
+      location: true, media: true, backups: false, sync: true, sharing: true, recovery: true,
     });
   });
 
@@ -98,7 +99,8 @@ describe("platform feature availability", () => {
     runtime.platform = "android";
     const { capabilities } = await import("./platform");
     expect(capabilities).toEqual({
-      nativeCapture: true, widgets: true, automaticLocation: true, manageTagSharing: true,
+      nativeCapture: true, widgets: true, automaticLocation: true, manualLocation: true,
+      location: true, media: true, backups: true, sync: true, sharing: true, recovery: true,
     });
   });
 
@@ -109,15 +111,15 @@ describe("platform feature availability", () => {
     const tag: Tag = { id: "tag", name: "Ideas", type: "standard" };
     const settings = renderToStaticMarkup(<TagSharingSettings tag={tag} changed={async () => {}} close={() => {}} />);
     const join = renderToStaticMarkup(<JoinSharedTag joined={async () => {}} />);
-    expect(settings.includes("Share hashtag")).toBe(nativePlatform !== "ios");
-    expect(join.includes("Join shared hashtag")).toBe(nativePlatform !== "ios");
+    expect(settings).toContain("Share hashtag");
+    expect(join).toContain("Join shared hashtag");
     const shared = renderToStaticMarkup(<TagSharingSettings
       tag={{ ...tag, sharing: { collectionId: "collection", role: "owner", status: "waiting" } }}
       changed={async () => {}} close={() => {}}
     />);
     expect(shared).toContain("Shared hashtag");
-    expect(shared.includes("Invite someone")).toBe(nativePlatform !== "ios");
-    expect(shared.includes("Stop sharing")).toBe(nativePlatform !== "ios");
+    expect(shared).toContain("Invite someone");
+    expect(shared).toContain("Stop sharing");
   });
 
   it("omits Android widgets, location setup and desktop startup settings on iOS", async () => {

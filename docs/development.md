@@ -1,6 +1,6 @@
 # Development
 
-Start with the [README](../README.md) for the app's behavior. The browser preview is temporary and resets on refresh; it never opens an Android or Windows library.
+Start with the [README](../README.md) for the app's behavior. The browser preview is temporary and resets on refresh; it never opens a native library.
 
 ## Browser preview
 
@@ -49,15 +49,22 @@ With a disposable emulator/device attached:
 
 Instrumented tests can replace or clear test data. Use test installations and preserve backups. See the [device checklist](device-checklist.md) for launcher and lifecycle checks, and [paper verification](paper-verification.md) for the isolated visual-test package.
 
-## iOS platform preparation
+## iOS
 
-The shared frontend recognizes Capacitor's `ios` platform separately from Android. Both select the native `Museamo` plugin; missing native methods and storage errors must remain errors, never fall back to browser sample data. A browser on an iPhone still uses the temporary browser preview.
+Build iOS on macOS with Xcode 26 or newer, which Capacitor 8 requires, and Node 22. Dependencies come through Swift Package Manager; CocoaPods is unnecessary. Install an iOS simulator runtime, 16.4 or newer, in Xcode Settings > Components.
 
-This is frontend preparation only. There is no iOS project, Swift plugin, native storage implementation, or iOS build command yet. Recognizing the platform does not make the app usable on iOS.
+```sh
+npm run ios:build
+npm run ios:launch
+```
 
-Feature availability is explicit in `src/platform.ts`. iOS uses the shared React composer. Native capture, widgets, automatic location, and sharing management remain disabled until their iOS implementations exist. Android retains its existing capabilities, and desktop controls still depend on the desktop runtime response. Browser preview keeps its simulated location and sharing behavior.
+`ios:build` builds the web app, syncs it into `ios/App`, and makes an unsigned Debug simulator build at `ios/DerivedData/Build/Products/Debug-iphonesimulator/App.app`. `ios:launch` boots an iPhone simulator when none is running, then installs and opens that build; reinstalling preserves app data. `npm run ios:run` does both. Set `IOS_DEVICE_ID` to a UDID from `xcrun simctl list devices available` to choose a simulator. Use `npm run ios:open` to run from Xcode with a debugger instead.
 
-When adding an iOS integration, enable its capability and verify the native implementation together. Displaying a shared tag or a saved location is separate from managing sharing or capturing a new location. Capability flags control presentation; native methods must still validate their own requests.
+The iOS host uses the Swift SQLite repository and registered Capacitor bridge for offline text capture, durable drafts, search, Gems, tags/checklists, and local Recovery. Media, location, backups, linked devices, shared hashtags, and widgets remain unavailable on iOS.
+
+Run the Swift package tests with `npm run test:ios`. Local persistence UI tests use the committed `AppUITests` target: run `npm run ios:sync` (or `ios:build`) before `npm run test:ios:ui` to refresh the web bundle. Set `IOS_TEST_DEVICE_ID` to choose an available iPhone simulator. CI is configured for Swift tests and an unsigned simulator build; the hosted job is not yet verified and does not run UI tests.
+
+Follow [iOS development](ios-development.md) for the native boundaries and [the iPhone device checklist](ios-device-checklist.md) for local signing, installation, and manual hardware checks. Signed physical-device installation remains to be verified.
 
 ## Windows
 
@@ -107,6 +114,7 @@ On Android build hosts, run `./gradlew :app:testDebugUnitTest` from `android/`. 
 | --- | --- |
 | `src/` | React interface, bridge contracts, browser preview, frontend tests |
 | `android/app/src/main/` | Kotlin bridge, Room storage, capture, widgets, lifecycle |
+| `ios/App/`, `native/ios/MuseamoNative/` | Capacitor iPhone host, Swift bridge, SQLite text storage |
 | `desktop/src/` | Tauri commands, SQLite, backups, tray, desktop sync |
 | `crates/sync-core/` | Shared protocol, identity, pairing, discovery, replication |
 | `scripts/` | Platform builders and local release tooling |
@@ -116,4 +124,6 @@ Persistence errors must remain visible; real apps must never fall back to previe
 
 ## CI and releases
 
-GitHub Actions defines frontend, Rust, Android unit/lint, emulator, and Windows/macOS/Linux desktop checks. Desktop validation bundles are retained as short-lived workflow artifacts, not published releases. Downloadable releases are assembled and published explicitly from local builds; see [the release guide](releases.md).
+GitHub Actions selects frontend, Rust, Android unit/lint, emulator, iOS Swift/simulator/archive, and Windows/macOS/Linux desktop checks from the changed files. Documentation uses lightweight checks; known test/tooling changes do not release; isolated platform changes avoid unrelated native builds. Feature branches run through PR checks, and newer PR updates cancel older runs. Manual `Checks` dispatch still runs full validation. See [CI scope and required checks](ci.md).
+
+Desktop validation bundles are retained as short-lived workflow artifacts. Successful mainline validation of app or bundle changes starts automatic Windows/Android publication and independent TestFlight upload; documentation-, test-, and known tooling-only merges skip that work. Local build/publication commands remain available; see [the release guide](releases.md).
