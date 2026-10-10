@@ -206,6 +206,16 @@ For signed phone installation, follow the [iPhone device checklist](docs/ios-dev
 
 ### Checks and releases
 
+The web app has a separate build target:
+
+```sh
+npm run web:dev      # Develop the browser interface
+npm run web:build    # Write web assets to dist-web/
+npm run web:preview  # Serve the web build locally
+```
+
+These commands use `vite.web.config.ts` and Vite's `webapp` mode. Android and desktop builds continue to use `dist/`. The web target currently runs the same temporary browser preview. Persistent server storage, sign-in, VPS deployment, and Android sync are still to be implemented; this build is not yet a hosted library.
+
 ```sh
 npm run typecheck
 npm test
